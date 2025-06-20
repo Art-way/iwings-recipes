@@ -1,5 +1,5 @@
 {
-  "name": "iwings-agency-recipe-ai",
+  "name": "iwings-agency-recipe-ai-(gemini)",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -11,8 +11,9 @@
   "dependencies": {
     "@google/genai": "1.5.1",
     "axios": "^1.10.0",
-    "react": "^19.1.0",
-    "react-dom": "19.1.0"
+    "axois": "^0.0.1-security",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

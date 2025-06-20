@@ -1,15 +1,14 @@
 // src/App.tsx
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { generateRecipeIdeasWithOllama } from './services/ollamaService'; 
-import { generateImageWithGemini } from './services/geminiService';
+import { generateRecipeIdeasWithOllama } from './services/ollamaService';
+import { generateImageWithGemini } from './services/geminiService'; // Restore this
 import { RecipeIdea, User } from './types';
-import RecipeCard from './components/RecipeCard'; 
-import LoadingSpinner from './components/LoadingSpinner'; 
-import AuthModal from './components/AuthModal'; 
-import Header from './components/Header'; 
+import RecipeCard from './components/RecipeCard';
+import LoadingSpinner from './components/LoadingSpinner';
+import AuthModal from './components/AuthModal';
+import Header from './components/Header';
 
-// --- THIS SECTION WAS MISSING AND IS NOW RESTORED ---
 const MAX_INGREDIENTS = 8;
 const CUISINE_OPTIONS = ["Any", "Italian", "Mexican", "Indian", "Chinese", "Mediterranean", "French", "Japanese", "Thai", "American", "Fusion", "Quick & Easy"];
 const DIETARY_OPTIONS = ["Vegetarian", "Vegan", "Gluten-Free", "Dairy-Free", "Nut-Free", "Low-Carb", "Paleo"];
@@ -21,34 +20,69 @@ const CHEF_PERSONALITY_SUGGESTIONS = [
   "A laid-back surfer dude making beach snacks.",
   "A very enthusiastic and loud TV chef."
 ];
-// --- END OF RESTORED SECTION ---
 
+// This handleDownloadImage should work for both base64 and external URLs
+const handleDownloadImage = async (recipe: RecipeIdea) => {
+    if (!recipe.imageUrl) {
+        alert("No image to download.");
+        return;
+    }
+    try {
+        const isBase64 = recipe.imageUrl.startsWith('data:image');
+        const link = document.createElement('a');
+        let objectUrlToRevoke: string | null = null;
 
-// ... (The rest of the file is the same as the correct version from the previous step)
-// Helper functions like toIsoDuration and formatRecipeForGoogleSchema can be copied from the previous step if they were also removed
-const handleDownloadImage = async (recipe: RecipeIdea) => { /* This function remains the same */ };
+        if (isBase64) {
+            link.href = recipe.imageUrl;
+        } else { // For external URLs (like Picsum Photos if Gemini fails)
+            const response = await fetch(recipe.imageUrl, { mode: 'cors' }); // CORS might be needed for some placeholders
+            if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
+            const blob = await response.blob();
+            objectUrlToRevoke = URL.createObjectURL(blob);
+            link.href = objectUrlToRevoke;
+        }
+        
+        const fileExtension = recipe.imageUrl.startsWith('data:image/jpeg') || recipe.imageUrl.includes('.jpg') || recipe.imageUrl.includes('/jpeg') ? 'jpg' :
+                              recipe.imageUrl.startsWith('data:image/png') || recipe.imageUrl.includes('.png') || recipe.imageUrl.includes('/png') ? 'png' : 'jpg';
+
+        link.download = `${recipe.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_image.${fileExtension}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        if (objectUrlToRevoke) {
+            URL.revokeObjectURL(objectUrlToRevoke);
+        }
+    } catch (error) {
+        console.error("Error downloading image:", error);
+        alert("Could not download the image. See console for details.");
+    }
+};
+
 
 const App: React.FC = () => {
   const [ingredients, setIngredients] = useState<string[]>(['']);
-  // This line was causing the crash because CUISINE_OPTIONS was not defined
-  const [cuisine, setCuisine] = useState<string>(CUISINE_OPTIONS[0]); 
+  const [cuisine, setCuisine] = useState<string>(CUISINE_OPTIONS[0]);
   const [dietaryRestrictions, setDietaryRestrictions] = useState<string[]>([]);
   const [chefPersonality, setChefPersonality] = useState<string>('');
   
   const [recipeIdeas, setRecipeIdeas] = useState<RecipeIdea[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [isGeminiKeyMissing, setIsGeminiKeyMissing] = useState<boolean>(false);
+  const [isGeminiKeyMissing, setIsGeminiKeyMissing] = useState<boolean>(false); // Restore this
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authModal, setAuthModal] = useState<'signin' | 'signup' | null>(null);
 
   useEffect(() => {
-    const GEMINI_API_KEY_CONFIGURED_CHECK = process.env.API_KEY;
+    // Check for GEMINI_API_KEY from vite.config.ts
+    const GEMINI_API_KEY_CONFIGURED_CHECK = process.env.GEMINI_API_KEY;
     if (!GEMINI_API_KEY_CONFIGURED_CHECK || GEMINI_API_KEY_CONFIGURED_CHECK.trim() === "" || GEMINI_API_KEY_CONFIGURED_CHECK === "undefined") {
       setIsGeminiKeyMissing(true);
+      console.warn("Gemini API Key is missing. Images will be placeholders.");
     } else {
       setIsGeminiKeyMissing(false);
+      console.log("Gemini API Key is configured.");
     }
 
     const storedUser = localStorage.getItem('iwings_user');
@@ -76,11 +110,12 @@ const App: React.FC = () => {
     const jsonLdData = {
       "@context": "https://schema.org/", "@type": "Recipe", "name": recipe.title,
       "url": `https://neronet-academy.com/recipes/${recipe.title.toLowerCase().replace(/\s+/g, '-')}`,
-      "image": [ recipe.imageUrl || "INSERT_GENERATED_FULL_FEATURED_IMAGE_URL_HERE", "INSERT_GENERATED_FULL_CONTEXTUAL_IMAGE_URL_1_HERE", "INSERT_GENERATED_FULL_CONTEXTUAL_IMAGE_URL_2_HERE" ],
+      "image": [ recipe.imageUrl || "INSERT_GENERATED_FULL_FEATURED_IMAGE_URL_HERE" ], // Simplified for main image
       "author": {"@type": "Person", "name": "Leo Martini"}, "datePublished": new Date().toISOString().split('T')[0],
       "description": recipe.description, "recipeCuisine": recipe.cuisine, "prepTime": recipe.prepTime, "cookTime": recipe.cookTime, "totalTime": recipe.totalTime, "keywords": recipe.keywords,
       "recipeYield": recipe.recipeYield, "recipeCategory": recipe.recipeCategory, "nutrition": recipe.nutrition, "aggregateRating": recipe.aggregateRating, "recipeIngredient": recipe.ingredients,
-      "recipeInstructions": recipe.instructions.map(step => ({ "@type": "HowToStep", "name": step.stepName, "text": step.stepText, "image": "" })), "video": null,
+      "recipeInstructions": recipe.instructions.map(step => ({ "@type": "HowToStep", "name": step.stepName, "text": step.stepText, "image": "" })), // Contextual images could be added later
+      "video": null,
       "aiImagePrompts": { "mainPrompts": recipe.mainImagePrompts, "stepPrompts": recipe.instructions.map(step => ({ step: step.stepName, prompt: step.imagePrompt })) }
     };
     const filename = `${recipe.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_schema.json`;
@@ -95,16 +130,24 @@ const App: React.FC = () => {
     if (!currentUser) { setError("Please sign in."); setAuthModal('signin'); return; }
     const filteredIngredients = ingredients.map(ing => ing.trim()).filter(ing => ing !== '');
     if (filteredIngredients.length === 0) { setError("Please enter at least one ingredient."); return; }
-    setIsLoading(true); setError(null); setRecipeIdeas([]); 
+    setIsLoading(true); setError(null); setRecipeIdeas([]);
     try {
       const selectedCuisine = cuisine === "Any" ? undefined : cuisine;
       const personalityToUse = currentUser?.isPremium ? chefPersonality : undefined;
+      
+      // 1. Get recipe ideas (including image prompts) from Ollama
       const richRecipes = await generateRecipeIdeasWithOllama(filteredIngredients, selectedCuisine, dietaryRestrictions, personalityToUse);
       if (richRecipes.length === 0) { setError("No recipes found. Try different ingredients!"); setIsLoading(false); return; }
+      
+      // 2. For each recipe, generate the main image using Gemini with the prompt from Ollama
       const recipesWithDisplayImage = await Promise.all(
         richRecipes.map(async (recipe) => {
-          const displayImageUrl = await generateImageWithGemini(recipe.mainImagePrompts[0] || recipe.title);
-          return { ...recipe, imageUrl: displayImageUrl }; 
+          const imagePromptFromOllama = (recipe.mainImagePrompts && recipe.mainImagePrompts.length > 0)
+            ? recipe.mainImagePrompts[0] // Use the first prompt from Ollama
+            : `A delicious plate of ${recipe.title}`; // Fallback prompt if Ollama doesn't provide one
+          
+          const displayImageUrl = await generateImageWithGemini(imagePromptFromOllama, recipe.title); // Pass recipe title for placeholder seed
+          return { ...recipe, imageUrl: displayImageUrl };
         })
       );
       setRecipeIdeas(recipesWithDisplayImage);
@@ -119,7 +162,7 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-gray-900 text-gray-100 font-sans">
       <Header currentUser={currentUser} onSignIn={() => setAuthModal('signin')} onSignUp={() => setAuthModal('signup')} onSignOut={handleSignOut} onGoPremium={handleGoPremium} />
       <main className="container mx-auto max-w-5xl py-8 px-4 sm:px-6 lg:px-8">
-        {isGeminiKeyMissing && (
+        {isGeminiKeyMissing && ( // Restore Gemini key missing warning
           <div className="bg-yellow-700 border border-yellow-600 text-yellow-100 px-5 py-4 rounded-lg relative mb-8 shadow-lg" role="alert">
             <strong className="font-bold block mb-1">Image Generation Alert!</strong>
             <span className="block sm:inline">The Gemini API Key is missing. Recipe text will be generated, but **images will be placeholders**.</span>

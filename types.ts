@@ -1,48 +1,21 @@
-// src/types.ts
+
+export interface RecipeIdea {
+  title: string;
+  description?: string; // Short description for the recipe
+  ingredients: string[];
+  instructions: string; // Newline-separated steps
+  prepTime?: string;
+  cookTime?: string;
+  cuisine?: string;
+  dietaryNotes?: string[];
+  chefPersonalityFeedback?: string;
+  imageUrl?: string; // To store URL/data URL of the generated image
+}
+
+// GeminiRecipeResponse removed as we are now using Puter.js and parsing directly.
 
 export interface User {
   email: string;
   isPremium: boolean;
-}
-
-export interface NutritionInformation {
-  calories: string;
-  fatContent?: string;
-  saturatedFatContent?: string;
-  cholesterolContent?: string;
-  sodiumContent?: string;
-  carbohydrateContent?: string;
-  fiberContent?: string;
-  sugarContent?: string;
-  proteinContent?: string;
-}
-
-export interface AggregateRating {
-  ratingValue: string;
-  ratingCount: string;
-}
-
-export interface InstructionStep {
-  stepName: string;
-  stepText: string;
-  imagePrompt: string;
-}
-
-export interface RecipeIdea {
-  title: string;
-  description: string;
-  cuisine: string;
-  prepTime: string;
-  cookTime: string;
-  totalTime: string;
-  keywords: string;
-  recipeYield: string;
-  recipeCategory: string;
-  nutrition: NutritionInformation;
-  aggregateRating: AggregateRating;
-  mainImagePrompts: string[];
-  ingredients: string[];
-  instructions: InstructionStep[];
-  chefPersonalityFeedback?: string;
-  imageUrl?: string;
+  // In a real app, you wouldn't store password here or on client-side
 }
