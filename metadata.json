@@ -1,0 +1,5 @@
+{
+  "name": "iWINGS Agency Recipe AI (Gemini)",
+  "description": "A web application that uses the Google Gemini API to generate recipe ideas and images based on user-provided ingredients. Features mock user authentication and premium features. Styled with Tailwind CSS.",
+  "requestFramePermissions": []
+}
